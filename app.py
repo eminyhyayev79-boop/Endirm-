@@ -1,13 +1,11 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 import yt_dlp
 import os
 
-# Burada Flask-a deyirik ki, HTML faylları qovluğun içində deyil, birbaşa çöldədir
 app = Flask(__name__, template_folder='.')
 
 @app.route('/')
 def index():
-    # Faylın adını tam olaraq səndə olduğu kimi bura yazdıq
     return render_template('Endirmə.html')
 
 @app.route('/download', methods=['POST'])
@@ -18,21 +16,27 @@ def download():
     if not video_url:
         return jsonify({"error": "Link yoxdur"}), 400
 
+    # Bura diqqət! YouTube bloklarını keçmək üçün xüsusi başlıqlar (headers) əlavə etdik
+    ydl_opts = {
+        'format': 'best',
+        'quiet': True,
+        'no_warnings': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'referer': 'https://www.google.com/',
+    }
+    
     try:
-        ydl_opts = {
-            'format': 'best',
-            'quiet': True,
-            'no_warnings': True,
-        }
-        
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
-            direct_link = info.get('url')
+            # Bəzi saytlarda 'url' yoxdur, 'formats' içindən götürürük
+            direct_link = info.get('url') or info.get('formats')[0].get('url')
             
         return jsonify({"download_url": direct_link})
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Xətanın nə olduğunu görmək üçün terminala yazdırırıq
+        print(f"Xəta baş verdi: {e}")
+        return jsonify({"error": "Video tapılmadı və ya sayt blokladı"}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
