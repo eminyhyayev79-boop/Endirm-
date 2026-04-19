@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>H 4 C K E R? Video Downloader</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: white; text-align: center; padding: 20px; }
+        .main-card { background: rgba(255,255,255,0.05); border-radius: 30px; padding: 30px; border: 1px solid #00ffaa; max-width: 500px; margin: auto; }
+        input { width: 90%; padding: 15px; border-radius: 20px; border: none; margin: 20px 0; background: #1a1a1a; color: white; }
+        button { background: linear-gradient(135deg, #00aa77, #008855); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-weight: 900; cursor: pointer; width: 100%; }
+        .logo { font-size: 30px; font-weight: 900; color: #00ffaa; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="main-card">
+        <div class="logo">⚡ H 4 C K E R? ⚡</div>
+        <input type="text" id="videoUrl" placeholder="Video linkini bura yapışdır...">
+        <button id="downloadBtn" onclick="downloadVideo()">⬇️ VİDEONU ENDİR</button>
+        <p id="status" style="margin-top:15px; font-size:12px; color:#00ffaa; display:none;"></p>
+    </div>
+
+    <script>
+        async function downloadVideo() {
+            const url = document.getElementById('videoUrl').value;
+            const btn = document.getElementById('downloadBtn');
+            const status = document.getElementById('status');
+            
+            if(!url) return alert("Linki daxil edin!");
+
+            btn.innerText = "Hazırlanır...";
+            status.style.display = "block";
+            status.innerText = "⏳ Server videonu analiz edir...";
+            
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: url})
+                });
+                
+                const data = await response.json();
+                
+                if(data.download_url) {
+                    window.location.href = data.download_url;
+                    btn.innerText = "Endirmə başladı!";
+                    status.innerText = "✅ Tapıldı! Endirmə başlayır...";
+                } else {
+                    alert("Xəta: Video tapılmadı!");
+                    btn.innerText = "Yenidən yoxla";
+                }
+            } catch (e) {
+                alert("Serverlə əlaqə kəsildi.");
+                btn.innerText = "Yoxla";
+            }
+        }
+    </script>
+</body>
+</html>
