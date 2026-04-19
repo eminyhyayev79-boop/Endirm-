@@ -10,28 +10,41 @@ def index():
 
 @app.route('/download', methods=['POST'])
 def download():
-    data = request.json
-    video_url = data.get('url')
-    
-    if not video_url:
+    url = request.json.get('url')
+    if not url:
         return jsonify({"error": "Link yoxdur"}), 400
 
+    # Bu API 4 platformanın hamısını (və daha çoxunu) dəstəkləyir
+    # Cobalt API istifadə edirik - pulsuz və güclüdür
+    api_url = "https://api.cobalt.tools/api/json"
+    
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "url": url,
+        "vQuality": "720"  # Video keyfiyyəti
+    }
+
     try:
-        # TikTok üçün xüsusi və sürətli API (TikWM)
-        # Bu API TikTok-un bloklarını özü keçir
-        api_url = f"https://www.tikwm.com/api/?url={video_url}"
-        response = requests.get(api_url).json()
+        response = requests.post(api_url, json=data, headers=headers)
+        res_data = response.json()
         
-        if response.get('code') == 0:
-            # TikTok videosunun birbaşa (watermark-sız) linki
-            direct_link = response['data']['play']
-            return jsonify({"download_url": direct_link})
+        # Əgər video tapılarsa
+        if res_data.get('status') == 'stream' or res_data.get('status') == 'redirect':
+            video_link = res_data.get('url')
+            return jsonify({"download_url": video_link})
+        elif res_data.get('status') == 'picker':
+            # Bəzən çoxlu seçim verir (məsələn Instagram postunda bir neçə şəkil/video)
+            video_link = res_data.get('picker')[0].get('url')
+            return jsonify({"download_url": video_link})
         else:
-            return jsonify({"error": "Video tapılmadı və ya link səhvdir"}), 400
+            return jsonify({"error": "Video tapılmadı və ya sayt blokladı"}), 400
             
     except Exception as e:
-        return jsonify({"error": "Sistemdə xəta baş verdi"}), 500
+        return jsonify({"error": "Serverlə əlaqə kəsildi"}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=5000)
