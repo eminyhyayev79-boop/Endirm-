@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-import yt_dlp
+import requests
 import os
 
 app = Flask(__name__, template_folder='.')
@@ -16,27 +16,21 @@ def download():
     if not video_url:
         return jsonify({"error": "Link yoxdur"}), 400
 
-    # Bura diqqət! YouTube bloklarını keçmək üçün xüsusi başlıqlar (headers) əlavə etdik
-    ydl_opts = {
-        'format': 'best',
-        'quiet': True,
-        'no_warnings': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'referer': 'https://www.google.com/',
-    }
-    
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(video_url, download=False)
-            # Bəzi saytlarda 'url' yoxdur, 'formats' içindən götürürük
-            direct_link = info.get('url') or info.get('formats')[0].get('url')
-            
-        return jsonify({"download_url": direct_link})
+        # TikTok üçün xüsusi və sürətli API (TikWM)
+        # Bu API TikTok-un bloklarını özü keçir
+        api_url = f"https://www.tikwm.com/api/?url={video_url}"
+        response = requests.get(api_url).json()
         
+        if response.get('code') == 0:
+            # TikTok videosunun birbaşa (watermark-sız) linki
+            direct_link = response['data']['play']
+            return jsonify({"download_url": direct_link})
+        else:
+            return jsonify({"error": "Video tapılmadı və ya link səhvdir"}), 400
+            
     except Exception as e:
-        # Xətanın nə olduğunu görmək üçün terminala yazdırırıq
-        print(f"Xəta baş verdi: {e}")
-        return jsonify({"error": "Video tapılmadı və ya sayt blokladı"}), 500
+        return jsonify({"error": "Sistemdə xəta baş verdi"}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
